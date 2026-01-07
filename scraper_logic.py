@@ -1,5 +1,13 @@
 import requests
+import exceptions as exc
 from bs4 import BeautifulSoup
+from io import StringIO
+import pandas as pd
+
+# Helps with display
+pd.set_option('display.width', None)
+pd.set_option('display.max_columns', None)
+
 
 class Scraper:
     """
@@ -34,16 +42,17 @@ class Scraper:
         except requests.RequestException:
             return None
     
-    def get_summary(self):
+    def make_summary(self):
         """
         Finds the first paragraph of the article for chosen phrase.
         Ignores HTML tags and returns only string from the paragraph.
         """
         html_struct = self.get_source()
         if not html_struct:
-            return f'ERROR: Article for "{self.phrase}" not found.'
+            raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
         
         soup = BeautifulSoup(html_struct, 'html.parser')
+        # All wikis on MediaWiki software (Bulbapedia too) have main content in section chosen below
         content = soup.find('div', class_='mw-parser-output')
 
         if content:
@@ -51,6 +60,39 @@ class Scraper:
             if first_p: 
                 return first_p.get_text(strip=True)
         
-        return 'No summary for this phrase.'
+        raise exc.ArticleNotFoundError(f'No summary for phrase "{self.phrase}" can be found')
     
-    
+    def make_table(self, number, is_header=False):
+        """
+        Extracts the n-th table from the wiki page and saves it as a CSV file.
+        """
+        html_struct = self.get_source()
+        if not html_struct:
+            raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
+        
+        soup = BeautifulSoup(html_struct, 'html.parser')
+        content = soup.find('div', class_='mw-parser-output')
+
+        if not content:
+            raise exc.ArticleNotFoundError("Could not find article content area.")
+        
+        tables = content.find_all('table')
+
+        if number < 1 or number > len(tables):
+            raise exc.TableNotFoundError(f"Table number {number} not found. There are {len(tables)} tables.")
+
+        # Conversion to string so we can work with pandas (doesn't work with BS object)
+        target = str(tables[number - 1])
+
+        if is_header:
+            # Pandas returns list of DF we only have one
+            # Use StringIO to wrap HTML (deprecated warning)
+            df = pd.read_html(StringIO(target), header=0)[0]
+        else:
+            df = pd.read_html(StringIO(target), header=None)[0]
+        
+        df.set_index(df.columns[0], inplace=True)
+        file_name = f"{self.phrase}.csv"
+        df.to_csv(file_name)
+
+        return df

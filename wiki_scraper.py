@@ -1,5 +1,8 @@
 import argparse
+import sys
+import exceptions as exc
 from scraper_logic import Scraper
+import pandas as pd
 
 class WikiScraperContoller:
     """
@@ -12,9 +15,46 @@ class WikiScraperContoller:
 
     def run(self):
         """Decides on action to take based on arguments"""
+    
         if self.args.summary:
             scraper = Scraper(self.args.summary)
-            print(scraper.get_summary())
+            try:
+                print(scraper.make_summary())
+            except exc.ArticleNotFoundError as e:
+                print(e)
+            
+        if self.args.table:
+            if not self.args.number:
+                print('Error: Table feature requires the number of the table (--number n).')
+                sys.exit(1)
+        
+            scraper = Scraper(self.args.table)
+            try:
+                df = scraper.make_table(
+                    number=self.args.number,
+                    is_header=self.args.first_row_is_header
+                )
+
+                # Can't be only if df as DF objects cant be evaluated into bool
+                if df is not None:
+                    print(df)
+                    print("\nFrequency of values (excluding headers):")
+                    # Creates SQL like structure and counts unique values
+                    # Delete empty slots and decrese dimension (to list)
+                    values = df.values.flatten()
+                    # Delete NaN
+                    values = pd.Series(values).dropna()
+                    # Count and display
+                    freq = values.value_counts()
+                    print(freq)
+            except exc.ArticleNotFoundError as e:
+                print(e)
+            except exc.TableNotFoundError as e:
+                print(e)
+
+    # Used for integration test
+    def get_scraper(self, phrase, local_path=None):
+        return Scraper(phrase, local_html_path=local_path)
 
     def main():
         """Parses arguments and starts the programme"""
@@ -57,3 +97,6 @@ class WikiScraperContoller:
 
         controller = WikiScraperContoller(args)
         controller.run()
+
+if __name__ == "__main__":
+    WikiScraperContoller.main()
