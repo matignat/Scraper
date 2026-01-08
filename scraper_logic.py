@@ -3,6 +3,10 @@ import exceptions as exc
 from bs4 import BeautifulSoup
 from io import StringIO
 import pandas as pd
+from bs4 import Tag
+import re
+import json
+from pathlib import Path
 
 # Helps with display
 pd.set_option('display.width', None)
@@ -79,20 +83,53 @@ class Scraper:
         tables = content.find_all('table')
 
         if number < 1 or number > len(tables):
-            raise exc.TableNotFoundError(f"Table number {number} not found. There are {len(tables)} tables.")
+            raise exc.TableNotFoundError(f'Table number {number} not found. There are {len(tables)} tables.')
 
-        # Conversion to string so we can work with pandas (doesn't work with BS object)
-        target = str(tables[number - 1])
-
-        if is_header:
-            # Pandas returns list of DF we only have one
-            # Use StringIO to wrap HTML (deprecated warning)
-            df = pd.read_html(StringIO(target), header=0)[0]
-        else:
-            df = pd.read_html(StringIO(target), header=None)[0]
         
+        # Conversion to string so we can work with pandas (doesn't work with BS object)
+        target = tables[number - 1]
+
+        target = str(target)
+
+        # Pandas returns list of DF we only have one
+        # Use StringIO to wrap HTML (deprecated warning)
+        df = pd.read_html(StringIO(target), header=0 if is_header else None)[0]
+
+        df = df.dropna(axis=1, how='all')
+        df = df.dropna(axis=0, how='all')
         df.set_index(df.columns[0], inplace=True)
-        file_name = f"{self.phrase}.csv"
+
+        file_name = f'{self.phrase}.csv'
         df.to_csv(file_name)
 
         return df
+    
+    def do_count_words(self):
+        html_struct = self.get_source()
+        if not html_struct:
+            raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
+        
+        soup = BeautifulSoup(html_struct, 'html.parser')
+        content = soup.find('div', class_='mw-parser-output')
+
+        if not content:
+            raise exc.ArticleNotFoundError("Could not find article content area.")
+        
+        text = content.get_text()
+
+        # Use regex to cut only words and make Upper case = Lower case
+        words = re.findall(r'\w+', text.lower())
+
+        file_path = Path(__file__).resolve().parent / './word-count.json'
+        word_counts = {}
+
+        if file_path.exists():
+            with file_path.open('r', encoding='utf-8') as f:
+                word_counts = json.load(f)
+
+        for word in words:
+            word_counts[word] = word_counts.get(word, 0) + 1
+        
+        with file_path.open('w', encoding='utf-8') as f:
+            # Ensure ascii for letters like é
+            json.dump(word_counts, f, indent=1, ensure_ascii=False)

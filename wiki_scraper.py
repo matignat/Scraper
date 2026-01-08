@@ -51,6 +51,14 @@ class WikiScraperContoller:
                 print(e)
             except exc.TableNotFoundError as e:
                 print(e)
+            
+        if self.args.count_words:
+            scraper = Scraper(self.args.count_words)
+            try:
+                scraper.do_count_words()
+            except exc.ArticleNotFoundError as e:
+                print(e)
+
 
     # Used for integration test
     def get_scraper(self, phrase, local_path=None):
@@ -67,16 +75,18 @@ class WikiScraperContoller:
         parser.add_argument('--number', type=int, help='The n-th table to be found (starts from 1)')
         parser.add_argument(
             '--first-row-is-header', 
+            dest='first_row_is_header',
             action='store_true',
             help='Treat the first row as column headers'
             )
         
         # Word count feature arguments
-        parser.add_argument('--count-words', help='For each run adds word count to JSON file')
+        parser.add_argument('--count-words', dest="count_words", help='For each run adds word count to JSON file')
         
         # Frequency analysis arguments 
         parser.add_argument(
             '--analyze-relative-word-frequency', 
+            dest='analyze_relative_word_frequency',
             action='store_true',
             help='Compare word usage frequency in the article with whole language frequency'
             )
@@ -89,7 +99,11 @@ class WikiScraperContoller:
         parser.add_argument("--chart", help='Path to save the generated chart')
         
         # Auto word count feature arguments
-        parser.add_argument('--auto-count-words', help='Counts words on subpages')
+        parser.add_argument(
+            '--auto-count-words',
+            dest='auto_count_words', 
+            help='Counts words on subpages'
+            )
         parser.add_argument('--depth', type=int, help='Depth of link graph to be traversed')
         parser.add_argument('--wait', type=int, help='Wait time between links')
 
