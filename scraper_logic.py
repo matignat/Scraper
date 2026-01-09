@@ -120,7 +120,7 @@ class Scraper:
         # Use regex to cut only words and make Upper case = Lower case
         words = re.findall(r'\w+', text.lower())
 
-        file_path = Path(__file__).resolve().parent / './word-count.json'
+        file_path = Path(__file__).resolve().parent / './word-counts.json'
         word_counts = {}
 
         if file_path.exists():
@@ -133,3 +133,8 @@ class Scraper:
         with file_path.open('w', encoding='utf-8') as f:
             # Ensure ascii for letters like é
             json.dump(word_counts, f, indent=1, ensure_ascii=False)
+
+
+
+        
+
