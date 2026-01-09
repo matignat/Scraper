@@ -51,6 +51,17 @@ class WikiScraperContoller:
         analyzer = WikiAnalyzer()
         analyzer.analyze_frequency(self.args.mode, self.args.count, self.args.chart) 
 
+    # Used for handling auto count
+    def auto_count(self):
+        if not self.args.depth:
+            raise exc.ArgumentError('Auto word count requires depth argument!')
+        
+        if not self.args.wait:
+            raise exc.ArgumentError('Auto word count requires wait argument!')
+        
+        scraper = Scraper(self.args.auto_count_words)
+        scraper.auto_count(self.args.depth, self.args.wait)
+
     # Controller logic
     def run(self):
         """Decides on action to take based on arguments"""
@@ -76,13 +87,20 @@ class WikiScraperContoller:
             try:
                 scraper.do_count_words()
             except exc.ArticleNotFoundError as e:
-                print(e)
+                print(f"ERROR: {type(e).__name__} \n{e}")
 
         # Frequency analysis
         if self.args.analyze_relative_word_frequency:
             try:
                 self.an_freq_arg()
             except (exc.ArticleNotFoundError, exc.ArgumentError) as e:
+                print(f"ERROR: {type(e).__name__} \n{e}")
+
+        # Auto word count 
+        if self.args.auto_count_words:
+            try:
+                self.auto_count()
+            except (exc.ArgumentError, exc.ArticleNotFoundError) as e:
                 print(f"ERROR: {type(e).__name__} \n{e}")
 
     # Used for integration test
@@ -130,7 +148,7 @@ class WikiScraperContoller:
             help='Counts words on subpages (depth and wait required!)'
             )
         parser.add_argument('--depth', type=int, help='Depth of link graph to be traversed')
-        parser.add_argument('--wait', type=int, help='Wait time between links')
+        parser.add_argument('--wait', type=float, help='Wait time between links')
 
         args = parser.parse_args()
 

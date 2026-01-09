@@ -7,6 +7,7 @@ from bs4 import Tag
 import re
 import json
 from pathlib import Path
+import time
 
 # Helps with display
 pd.set_option('display.width', None)
@@ -28,7 +29,7 @@ class Scraper:
         self.base_url = base_url
         self.local_html_path = local_html_path
 
-    # Fetch HTML as text either from a local file or from internet using requests
+    # Fetch HTML as text either from a local file or from internet using requests and return text
     def get_source(self): 
         if self.local_html_path:
             with open(self.local_html_path, 'r', encoding='utf-8') as file:
@@ -38,31 +39,38 @@ class Scraper:
         
         try:
             source = requests.get(url)
-            # 200 is the only success code so return None if article doesn't exist
-            if source.status_code != 200:
-                return None
-            return source.text
         # Catch errors from requests package (connection error, wrong url ...)
         except requests.RequestException:
-            return None
+            raise exc.ArticleNotFoundError
+        
+        # 200 is the only success code so return None if article doesn't exist
+        if source.status_code != 200:
+                raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
+
+        if source is None:
+            raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
+        
+        # All wikis on MediaWiki software (Bulbapedia too) have main content in section chosen below
+        soup = BeautifulSoup(source.text, 'html.parser')
+        content = soup.find('div', class_='mw-parser-output')
+
+        if content is None:
+            raise exc.ArticleNotFoundError('Could not find article content area.')
+
+        return content
     
     def make_summary(self):
         """
         Finds the first paragraph of the article for chosen phrase.
         Ignores HTML tags and returns only string from the paragraph.
         """
-        html_struct = self.get_source()
-        if not html_struct:
-            raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
-        
-        soup = BeautifulSoup(html_struct, 'html.parser')
-        # All wikis on MediaWiki software (Bulbapedia too) have main content in section chosen below
-        content = soup.find('div', class_='mw-parser-output')
+        content = self.get_source()
 
-        if content:
-            first_p = content.find('p')
-            if first_p: 
-                return first_p.get_text(strip=True)
+        # Finds first paragraph (Tag type)
+        first_p = content.find('p')
+
+        if first_p: 
+            return first_p.get_text(strip=True)
         
         raise exc.ArticleNotFoundError(f'No summary for phrase "{self.phrase}" can be found')
     
@@ -70,16 +78,7 @@ class Scraper:
         """
         Extracts the n-th table from the wiki page and saves it as a CSV file.
         """
-        html_struct = self.get_source()
-        if not html_struct:
-            raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
-        
-        soup = BeautifulSoup(html_struct, 'html.parser')
-        content = soup.find('div', class_='mw-parser-output')
-
-        if not content:
-            raise exc.ArticleNotFoundError("Could not find article content area.")
-        
+        content = self.get_source()
         tables = content.find_all('table')
 
         if number < 1 or number > len(tables):
@@ -105,18 +104,7 @@ class Scraper:
         return df
     
     def do_count_words(self):
-        html_struct = self.get_source()
-        if not html_struct:
-            raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
-        
-        soup = BeautifulSoup(html_struct, 'html.parser')
-        content = soup.find('div', class_='mw-parser-output')
-
-        if not content:
-            raise exc.ArticleNotFoundError("Could not find article content area.")
-        
-        text = content.get_text()
-
+        text = self.get_source().get_text(strip=True)
         # Use regex to cut only words and make Upper case = Lower case
         words = re.findall(r'\w+', text.lower())
 
@@ -134,6 +122,60 @@ class Scraper:
             # Ensure ascii for letters like é
             json.dump(word_counts, f, indent=1, ensure_ascii=False)
 
+    # Recursively counts words using links
+    def auto_count(self, n, t, i=0, visited=None):
+        if visited is None:
+            visited = set()
+
+        if n < 0 or t < 0: 
+            raise exc.ArgumentError('Depth and time parameters have to be >= 0!')
+
+        if i > n:
+            return
+        
+        if self.phrase in visited:
+            return
+        
+        visited.add(self.phrase)
+
+        print(f'Counting phrase: {self.phrase}')
+        self.do_count_words()
+
+        time.sleep(t)
+
+        content = self.get_source()
+        links = content.find_all('a', href=True)
+
+        # We reached max depth
+        if i == n:
+            return
+    
+        for l in links:
+            href = l.get('href')
+            if not href or not href.startswith('/wiki/'):
+                continue
+            
+            new_phrase = href.removeprefix('/wiki/')
+
+            self.phrase = new_phrase
+
+            self.auto_count(n, t, i + 1, visited)
+                
+
+
+            
+
+        
+
+
+
+
+
+
+
+        
+
+        
 
 
         
