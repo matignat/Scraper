@@ -2,7 +2,6 @@ import json
 import pandas as pd
 import matplotlib.pyplot as plt
 from wordfreq import get_frequency_dict
-from scraper_logic import Scraper
 from pathlib import Path
 
 class WikiAnalyzer:

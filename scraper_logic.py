@@ -24,7 +24,7 @@ class Scraper:
         local_html_path (str): Optional path to a local HTML file for offline testing.
     """
 
-    def __init__(self, phrase, base_url="https://bulbapedia.bulbagarden.net", local_html_path=None):
+    def __init__(self, phrase, base_url='https://bulbapedia.bulbagarden.net/wiki/', local_html_path=None):
         self.phrase = phrase.replace(' ', '_')
         self.base_url = base_url
         self.local_html_path = local_html_path
@@ -35,7 +35,7 @@ class Scraper:
             with open(self.local_html_path, 'r', encoding='utf-8') as file:
                 return file.read()
             
-        url = f'{self.base_url}/wiki/{self.phrase}'
+        url = f'{self.base_url}{self.phrase}'
         
         try:
             source = requests.get(url)
@@ -154,29 +154,7 @@ class Scraper:
             href = l.get('href')
             if not href or not href.startswith('/wiki/'):
                 continue
-            
-            new_phrase = href.removeprefix('/wiki/')
 
-            self.phrase = new_phrase
+            self.phrase = href
 
             self.auto_count(n, t, i + 1, visited)
-                
-
-
-            
-
-        
-
-
-
-
-
-
-
-        
-
-        
-
-
-        
-

@@ -53,10 +53,10 @@ class WikiScraperContoller:
 
     # Used for handling auto count
     def auto_count(self):
-        if not self.args.depth:
+        if self.args.depth is None:
             raise exc.ArgumentError('Auto word count requires depth argument!')
         
-        if not self.args.wait:
+        if self.args.wait is None:
             raise exc.ArgumentError('Auto word count requires wait argument!')
         
         scraper = Scraper(self.args.auto_count_words)
