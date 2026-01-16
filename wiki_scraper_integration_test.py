@@ -11,10 +11,6 @@ class MockArgs:
     def __init__(self, summary=None, local_path=None):
         self.summary = summary
         self.local_path = local_path
-        self.table = None
-        self.count_words = None
-        self.analyze_relative_word_frequency = False
-        self.auto_count_words = None
 
 def run_test():
     """
@@ -34,7 +30,7 @@ def run_test():
         expected_start = 'Team Rocket'
         expected_end = 'outpost in the Sevil Islands.'
 
-        result = scraper.get_summary()
+        result = scraper.make_summary()
 
         if not result.startswith(expected_start):
             raise AssertionError(f'Wrong starting phrase')

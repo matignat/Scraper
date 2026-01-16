@@ -24,9 +24,8 @@ class Scraper:
         local_html_path (str): Optional path to a local HTML file for offline testing.
     """
 
-    def __init__(self, phrase, base_url='https://bulbapedia.bulbagarden.net/wiki/', local_html_path=None):
+    def __init__(self, phrase, local_html_path=None):
         self.phrase = phrase.replace(' ', '_')
-        self.base_url = base_url
         self.local_html_path = local_html_path
 
     # Fetch HTML as text either from a local file or from internet using requests and return text
@@ -34,8 +33,10 @@ class Scraper:
         if self.local_html_path:
             with open(self.local_html_path, 'r', encoding='utf-8') as file:
                 return file.read()
-            
-        url = f'{self.base_url}{self.phrase}'
+        
+        base_url='https://bulbapedia.bulbagarden.net/wiki/'
+
+        url = f'{base_url}{self.phrase}'
         
         try:
             source = requests.get(url)
@@ -52,7 +53,7 @@ class Scraper:
         
         # All wikis on MediaWiki software (Bulbapedia too) have main content in section chosen below
         soup = BeautifulSoup(source.text, 'html.parser')
-        content = soup.find('div', class_='mw-parser-output')
+        content = soup.find('div', id='mw-content-text')
 
         if content is None:
             raise exc.ArticleNotFoundError('Could not find article content area.')
@@ -104,7 +105,7 @@ class Scraper:
         return df
     
     def do_count_words(self):
-        text = self.get_source().get_text(strip=True)
+        text = self.get_source().get_text(" ", strip=True)
         # Use regex to cut only words and make Upper case = Lower case
         words = re.findall(r'\w+', text.lower())
 
