@@ -32,27 +32,26 @@ class Scraper:
     def get_source(self): 
         if self.local_html_path:
             with open(self.local_html_path, 'r', encoding='utf-8') as file:
-                return file.read()
-        
-        base_url='https://bulbapedia.bulbagarden.net/wiki/'
+                text = file.read()
+        else:
+            base_url='https://bulbapedia.bulbagarden.net/wiki/'
 
-        url = f'{base_url}{self.phrase}'
-        
-        try:
-            source = requests.get(url)
-        # Catch errors from requests package (connection error, wrong url ...)
-        except requests.RequestException:
-            raise exc.ArticleNotFoundError
-        
-        # 200 is the only success code so return None if article doesn't exist
-        if source.status_code != 200:
-                raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
-
-        if source is None:
-            raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
-        
+            url = f'{base_url}{self.phrase}'
+            
+            try:
+                source = requests.get(url)
+            # Catch errors from requests package (connection error, wrong url ...)
+            except requests.RequestException:
+                raise exc.ArticleNotFoundError
+            
+            # 200 is the only success code so return None if article doesn't exist
+            if source.status_code != 200:
+                    raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
+            
+            text = source.text
+            
         # All wikis on MediaWiki software (Bulbapedia too) have main content in section chosen below
-        soup = BeautifulSoup(source.text, 'html.parser')
+        soup = BeautifulSoup(text, 'html.parser')
         content = soup.find('div', id='mw-content-text')
 
         if content is None:
@@ -107,7 +106,7 @@ class Scraper:
     def do_count_words(self):
         text = self.get_source().get_text(" ", strip=True)
         # Use regex to cut only words and make Upper case = Lower case
-        words = re.findall(r'\w+', text.lower())
+        words = re.findall(r'[^\W\d_]+', text.lower())
 
         file_path = Path(__file__).resolve().parent / './word-counts.json'
         word_counts = {}
@@ -150,12 +149,19 @@ class Scraper:
         # We reached max depth
         if i == n:
             return
-    
+
+        # Recursive call for links on site
         for l in links:
             href = l.get('href')
             if not href or not href.startswith('/wiki/'):
                 continue
+            
+            # Delete /wiki/ prefix
+            next_phrase = href[len('/wiki/'):]
 
-            self.phrase = href
+            # Skip namespaces 
+            if ':' in next_phrase:
+                continue
 
-            self.auto_count(n, t, i + 1, visited)
+            child = Scraper(next_phrase)
+            child.auto_count(n, t, i + 1, visited)
