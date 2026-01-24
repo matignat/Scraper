@@ -1,51 +1,46 @@
-import sys
 from wiki_scraper import WikiScraperContoller
-from scraper_logic import Scraper
+from pathlib import Path
+from argparser_logic import argparser
 
-class MockArgs:
-    """
-    A helper class to simulate the object returned by argparse.
-    This allows us to test the Controller without actual command-line input.
-    """
-    # Test summary feature
-    def __init__(self, summary=None, local_path=None):
-        self.summary = summary
-        self.local_path = local_path
+"""
+Integration test:
+
+    python wiki_scraper_integration_test.py
+
+Loads a saved HTML page from ./, runs one main feature
+(summary extraction), and exits with a non-zero code if the test fails.
+"""
 
 def run_test():
-    """
+    """ 
     Performs an integration test of the --summary functionality using local HTML file.
     """
 
-    # Create our arguments (local path is not used by a controller itself it's just for the test)
-    args = MockArgs(
-        summary='Team Rocket',
-        local_path='team_rocket.html'
-    )
+    args = argparser(["summary", "Team Rocket"])
 
     try:
-        controller = WikiScraperContoller(args)
-        scraper = controller.get_scraper(args.summary, args.local_path)
 
-        expected_start = 'Team Rocket'
-        expected_end = 'outpost in the Sevil Islands.'
+        html_path = Path(__file__).resolve().parent / "test_html.html"
 
-        result = scraper.make_summary()
+        if not html_path.exists():
+            raise FileNotFoundError(f"Missing test file: {html_path}\n")
 
-        if not result.startswith(expected_start):
-            raise AssertionError(f'Wrong starting phrase')
+        controller = WikiScraperContoller(args, str(html_path))
 
-        if not result.endswith(expected_end):    
-            raise AssertionError(f'Wrong ending phrase')
+        expected_start = "Team Rocket"
+        expected_end = "outpost in the Sevii Islands."
 
-        print('Integration test PASSED!')
-        sys.exit(0)
+        result = controller.run()
 
+        assert(result.startswith(expected_start))
+        assert(result.endswith(expected_end))
     # Catch assertion errors (exception subclasses)
     except Exception as e:
-        print(f'Integration test FAILED: {e}')
-        sys.exit(1)
+        print(f"Integration test FAILED: {e}")
+        return
+    
+    print("Integration test SUCCESS!")
 
 # If this file has been ran directly run tests
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_test()

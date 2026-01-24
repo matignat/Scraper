@@ -10,8 +10,8 @@ from pathlib import Path
 import time
 
 # Helps with display
-pd.set_option('display.width', None)
-pd.set_option('display.max_columns', None)
+pd.set_option("display.width", None)
+pd.set_option("display.max_columns", None)
 
 
 class Scraper:
@@ -25,18 +25,18 @@ class Scraper:
     """
 
     def __init__(self, phrase, local_html_path=None):
-        self.phrase = phrase.replace(' ', '_')
+        self.phrase = phrase.replace(" ", "_")
         self.local_html_path = local_html_path
 
     # Fetch HTML as text either from a local file or from internet using requests and return text
     def get_source(self): 
         if self.local_html_path:
-            with open(self.local_html_path, 'r', encoding='utf-8') as file:
+            with open(self.local_html_path, "r", encoding="utf-8") as file:
                 text = file.read()
         else:
-            base_url='https://bulbapedia.bulbagarden.net/wiki/'
+            base_url="https://bulbapedia.bulbagarden.net/wiki/"
 
-            url = f'{base_url}{self.phrase}'
+            url = f"{base_url}{self.phrase}"
             
             try:
                 source = requests.get(url)
@@ -44,18 +44,18 @@ class Scraper:
             except requests.RequestException:
                 raise exc.ArticleNotFoundError
             
-            # 200 is the only success code so return None if article doesn't exist
+            # 200 is the only success code so return None if article doesn"t exist
             if source.status_code != 200:
-                    raise exc.ArticleNotFoundError(f'No article for phrase "{self.phrase}" found.')
+                    raise exc.ArticleNotFoundError(f"No article for phrase '{self.phrase}' found.")
             
             text = source.text
             
         # All wikis on MediaWiki software (Bulbapedia too) have main content in section chosen below
-        soup = BeautifulSoup(text, 'html.parser')
-        content = soup.find('div', id='mw-content-text')
+        soup = BeautifulSoup(text, "html.parser")
+        content = soup.find("div", id="mw-content-text")
 
         if content is None:
-            raise exc.ArticleNotFoundError('Could not find article content area.')
+            raise exc.ArticleNotFoundError("Could not find article content area.")
 
         return content
     
@@ -67,25 +67,27 @@ class Scraper:
         content = self.get_source()
 
         # Finds first paragraph (Tag type)
-        first_p = content.find('p')
+        first_p = content.find("p")
 
         if first_p: 
-            return first_p.get_text(strip=True)
+            text = first_p.get_text(" ", strip=True)
+            # Deletes additional spaces before dots etc.
+            text = re.sub(r"\s+([.,!?;:])", "", text)
+            return text
         
-        raise exc.ArticleNotFoundError(f'No summary for phrase "{self.phrase}" can be found')
+        raise exc.ArticleNotFoundError(f"No summary for phrase '{self.phrase}' can be found")
     
     def make_table(self, number, is_header=False):
         """
         Extracts the n-th table from the wiki page and saves it as a CSV file.
         """
         content = self.get_source()
-        tables = content.find_all('table')
+        tables = content.find_all("table")
 
         if number < 1 or number > len(tables):
-            raise exc.TableNotFoundError(f'Table number {number} not found. There are {len(tables)} tables.')
+            raise exc.TableNotFoundError(f"Table number {number} not found. There are {len(tables)} tables.")
 
-        
-        # Conversion to string so we can work with pandas (doesn't work with BS object)
+        # Conversion to string so we can work with pandas (doesn"t work with BS object)
         target = tables[number - 1]
 
         target = str(target)
@@ -94,11 +96,11 @@ class Scraper:
         # Use StringIO to wrap HTML (deprecated warning)
         df = pd.read_html(StringIO(target), header=0 if is_header else None)[0]
 
-        df = df.dropna(axis=1, how='all')
-        df = df.dropna(axis=0, how='all')
+        df = df.dropna(axis=1, how="all")
+        df = df.dropna(axis=0, how="all")
         df.set_index(df.columns[0], inplace=True)
 
-        file_name = f'{self.phrase}.csv'
+        file_name = f"{self.phrase}.csv"
         df.to_csv(file_name)
 
         return df
@@ -106,21 +108,24 @@ class Scraper:
     def do_count_words(self):
         text = self.get_source().get_text(" ", strip=True)
         # Use regex to cut only words and make Upper case = Lower case
-        words = re.findall(r'[^\W\d_]+', text.lower())
+        words = re.findall(r"[^\W\d_]+", text.lower())
 
-        file_path = Path(__file__).resolve().parent / './word-counts.json'
+        file_path = Path(__file__).resolve().parent / "./word-counts.json"
         word_counts = {}
 
+        # Try opening word-count.json
         if file_path.exists():
-            with file_path.open('r', encoding='utf-8') as f:
+            with file_path.open("r", encoding="utf-8") as f:
                 word_counts = json.load(f)
 
         for word in words:
             word_counts[word] = word_counts.get(word, 0) + 1
-        
-        with file_path.open('w', encoding='utf-8') as f:
+
+        with file_path.open("w", encoding="utf-8") as f:
+            # Sort the file
+            sorted_data = dict(sorted(word_counts.items(), key=lambda kv: kv[1], reverse=True))
             # Ensure ascii for letters like é
-            json.dump(word_counts, f, indent=1, ensure_ascii=False)
+            json.dump(sorted_data, f, indent=1, ensure_ascii=False)
 
     # Recursively counts words using links
     def auto_count(self, n, t, i=0, visited=None):
@@ -128,7 +133,7 @@ class Scraper:
             visited = set()
 
         if n < 0 or t < 0: 
-            raise exc.ArgumentError('Depth and time parameters have to be >= 0!')
+            raise exc.ArgumentError("Depth and time parameters have to be >= 0!")
 
         if i > n:
             return
@@ -138,13 +143,13 @@ class Scraper:
         
         visited.add(self.phrase)
 
-        print(f'Counting phrase: {self.phrase}')
+        print(f"Counting phrase: {self.phrase}")
         self.do_count_words()
 
         time.sleep(t)
 
         content = self.get_source()
-        links = content.find_all('a', href=True)
+        links = content.find_all("a", href=True)
 
         # We reached max depth
         if i == n:
@@ -152,15 +157,15 @@ class Scraper:
 
         # Recursive call for links on site
         for l in links:
-            href = l.get('href')
-            if not href or not href.startswith('/wiki/'):
+            href = l.get("href")
+            if not href or not href.startswith("/wiki/"):
                 continue
             
             # Delete /wiki/ prefix
-            next_phrase = href[len('/wiki/'):]
+            next_phrase = href[len("/wiki/"):]
 
             # Skip namespaces 
-            if ':' in next_phrase:
+            if ":" in next_phrase:
                 continue
 
             child = Scraper(next_phrase)
