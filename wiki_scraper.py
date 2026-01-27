@@ -1,10 +1,12 @@
-from argparser_logic import argparser
-import exceptions as exc
-from scraper_logic import Scraper
 import pandas as pd
-from freq_analyzer import WikiAnalyzer
 
-class WikiScraperContoller:
+import exceptions as exc
+from argparser_logic import arg_parser
+from freq_analyzer import WikiAnalyzer
+from scraper_logic import Scraper
+
+
+class WikiScraperController:
     """
     Class controlling the operations based on called arguments.
     """
@@ -13,17 +15,7 @@ class WikiScraperContoller:
         self.args = args
         self.local_path = local_path
 
-    def count_words(self):
-        scraper = Scraper(self.args.phrase, self.local_path)
-        return scraper.do_count_words()
-
-    def summary(self):
-        scraper = Scraper(self.args.phrase,self.local_path)
-        res = scraper.make_summary()
-        print(res)
-        return res
-
-    def table(self):    
+    def table(self):
         scraper = Scraper(self.args.phrase, self.local_path)
 
         df = scraper.make_table(
@@ -45,47 +37,39 @@ class WikiScraperContoller:
 
         return df
 
-    # Used for handling frequency anaysis
-    def an_freq(self):
-        analyzer = WikiAnalyzer()
-        return analyzer.analyze_frequency(self.args.mode, self.args.count, self.args.chart)
-
-    # Used for handling auto count
-    def auto_count(self):
-        scraper = Scraper(self.args.phrase, self.local_path)
-        return scraper.auto_count(self.args.depth, self.args.wait)
-
     # Controller logic
     def run(self):
         cmd = self.args.command
 
         try:
             if cmd == "summary":
-                return self.summary()
+                scraper = Scraper(self.args.phrase, self.local_path)
+                res = scraper.make_summary()
+                print(res)
+                return res
 
-            elif cmd == "table":
+            if cmd == "table":
                 return self.table()
 
-            elif cmd == "count-words":
-                return self.count_words()
+            if cmd == "count-words":
+                scraper = Scraper(self.args.phrase, self.local_path)
+                return scraper.count_words()
 
-            elif cmd == "analyze-relative-word-frequency":
-                return self.an_freq()
+            if cmd == "analyze-relative-word-frequency":
+                analyzer = WikiAnalyzer()
+                return analyzer.analyze_frequency(self.args.mode, self.args.count, self.args.chart)
 
-            elif cmd == "auto-count-words":
-                return self.auto_count()
+            if cmd == "auto-count-words":
+                scraper = Scraper(self.args.phrase, self.local_path)
+                return scraper.auto_count(self.args.depth, self.args.wait)
 
-            else:
-                raise exc.ArgumentError(f"Unknown command: {cmd}")
+            raise exc.ArgumentError(f"Unknown command: {cmd}")
 
         except (exc.ArticleNotFoundError, exc.TableNotFoundError, exc.ArgumentError) as e:
             print(f"ERROR: {type(e).__name__}\n{e}")
 
-    # Used for integration test
-    def get_scraper(self, phrase, local_path=None):
-        return Scraper(phrase, local_html_path=local_path)
-
+# If explicitly called parse args and run programme
 if __name__ == "__main__":
-    args = argparser()
-    controller = WikiScraperContoller(args)
+    args = arg_parser()
+    controller = WikiScraperController(args)
     controller.run()

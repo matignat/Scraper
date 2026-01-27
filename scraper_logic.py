@@ -1,13 +1,14 @@
-import requests
-import exceptions as exc
-from bs4 import BeautifulSoup
-from io import StringIO
-import pandas as pd
-from bs4 import Tag
-import re
 import json
-from pathlib import Path
+import re
 import time
+from io import StringIO
+from pathlib import Path
+
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+
+import exceptions as exc
 
 # Helps with display
 pd.set_option("display.width", None)
@@ -20,7 +21,6 @@ class Scraper:
     
     Attributes:
         phrase (str): The search phrase provided by the user.
-        base_url (str): The base URL of the wiki being scraped.
         local_html_path (str): Optional path to a local HTML file for offline testing.
     """
 
@@ -34,8 +34,7 @@ class Scraper:
             with open(self.local_html_path, "r", encoding="utf-8") as file:
                 text = file.read()
         else:
-            base_url="https://bulbapedia.bulbagarden.net/wiki/"
-
+            base_url = "https://bulbapedia.bulbagarden.net/wiki/"
             url = f"{base_url}{self.phrase}"
             
             try:
@@ -44,9 +43,8 @@ class Scraper:
             except requests.RequestException:
                 raise exc.ArticleNotFoundError
             
-            # 200 is the only success code so return None if article doesn"t exist
-            if source.status_code != 200:
-                    raise exc.ArticleNotFoundError(f"No article for phrase '{self.phrase}' found.")
+            if source.status_code != requests.codes.ok:
+                raise exc.ArticleNotFoundError(f"No article for phrase '{self.phrase}' found.")
             
             text = source.text
             
@@ -72,7 +70,7 @@ class Scraper:
         if first_p: 
             text = first_p.get_text(" ", strip=True)
             # Deletes additional spaces before dots etc.
-            text = re.sub(r"\s+([.,!?;:])", "", text)
+            text = re.sub(r"\s+([.,!?;:])", r"\1", text)
             return text
         
         raise exc.ArticleNotFoundError(f"No summary for phrase '{self.phrase}' can be found")
@@ -87,7 +85,7 @@ class Scraper:
         if number < 1 or number > len(tables):
             raise exc.TableNotFoundError(f"Table number {number} not found. There are {len(tables)} tables.")
 
-        # Conversion to string so we can work with pandas (doesn"t work with BS object)
+        # Conversion to string so we can work with pandas (doesn't work with BS object)
         target = tables[number - 1]
 
         target = str(target)
@@ -105,7 +103,7 @@ class Scraper:
 
         return df
     
-    def do_count_words(self):
+    def count_words(self):
         text = self.get_source().get_text(" ", strip=True)
         # Use regex to cut only words and make Upper case = Lower case
         words = re.findall(r"[^\W\d_]+", text.lower())
