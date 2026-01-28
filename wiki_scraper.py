@@ -15,9 +15,7 @@ class WikiScraperController:
         self.args = args
         self.local_path = local_path
 
-    def table(self):
-        scraper = Scraper(self.args.phrase, self.local_path)
-
+    def table(self, scraper):
         df = scraper.make_table(
             number=self.args.number,
             is_header=self.args.first_row_is_header
@@ -42,17 +40,17 @@ class WikiScraperController:
         cmd = self.args.command
 
         try:
+            scraper = Scraper(self.args.phrase, self.local_path)
+
             if cmd == "summary":
-                scraper = Scraper(self.args.phrase, self.local_path)
                 res = scraper.make_summary()
                 print(res)
                 return res
 
             if cmd == "table":
-                return self.table()
+                return self.table(scraper)
 
             if cmd == "count-words":
-                scraper = Scraper(self.args.phrase, self.local_path)
                 return scraper.count_words()
 
             if cmd == "analyze-relative-word-frequency":
@@ -60,7 +58,6 @@ class WikiScraperController:
                 return analyzer.analyze_frequency(self.args.mode, self.args.count, self.args.chart)
 
             if cmd == "auto-count-words":
-                scraper = Scraper(self.args.phrase, self.local_path)
                 return scraper.auto_count(self.args.depth, self.args.wait)
 
             raise exc.ArgumentError(f"Unknown command: {cmd}")
