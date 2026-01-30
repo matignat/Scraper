@@ -40,17 +40,18 @@ class WikiScraperController:
         cmd = self.args.command
 
         try:
-            scraper = Scraper(self.args.phrase, self.local_path)
-
             if cmd == "summary":
+                scraper = Scraper(self.args.phrase, self.local_path)
                 res = scraper.make_summary()
                 print(res)
                 return res
 
             if cmd == "table":
+                scraper = Scraper(self.args.phrase, self.local_path)
                 return self.table(scraper)
 
             if cmd == "count-words":
+                scraper = Scraper(self.args.phrase, self.local_path)
                 return scraper.count_words()
 
             if cmd == "analyze-relative-word-frequency":
@@ -58,6 +59,7 @@ class WikiScraperController:
                 return analyzer.analyze_frequency(self.args.mode, self.args.count, self.args.chart)
 
             if cmd == "auto-count-words":
+                scraper = Scraper(self.args.phrase, self.local_path)
                 return scraper.auto_count(self.args.depth, self.args.wait)
 
             raise exc.ArgumentError(f"Unknown command: {cmd}")

@@ -96,6 +96,14 @@ class Scraper:
 
         df = df.dropna(axis=1, how="all")
         df = df.dropna(axis=0, how="all")
+        
+        # If data frame has no columns report an error
+        if df.shape[1] == 0:
+            raise exc.TableNotFoundError(
+                "Parsed table is empty after cleaning (0 columns). "
+                "Try a different --number or adjust header handling."
+            )
+
         df.set_index(df.columns[0], inplace=True)
 
         file_name = f"{self.phrase}.csv"
@@ -142,7 +150,7 @@ class Scraper:
         visited.add(self.phrase)
 
         print(f"Counting phrase: {self.phrase}")
-        self.do_count_words()
+        self.count_words()
 
         time.sleep(t)
 
