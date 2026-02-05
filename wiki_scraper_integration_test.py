@@ -35,7 +35,7 @@ def run_test():
         print(f"Integration test FAILED: {e}")
         return
     
-    print("Integration test SUCCESS!")
+    print("\033[32mIntegration test SUCCESS!\033[0m")
 
 
 # If this file has been ran directly run tests
