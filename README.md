@@ -1,50 +1,127 @@
 # Bulbapedia Wiki Scraper
 
-Implementation of bulbapedia wiki scraper featuring multiple commands such as:
+A Python web scraper for [Bulbapedia](https://bulbapedia.bulbagarden.net/) that allows users to retrieve article summaries, extract tables, analyze word frequencies, and recursively explore linked articles.
 
-## Commands
+The project was built to practice web scraping, HTML parsing, command-line interfaces, automated testing, and basic text analysis.
 
-1. **Summary** — fetches first sentence of given article as it's summary.
-2. **Table** — searches and prints out n-th table in the article.
-3. **Count-words** — counts words in the article and writes them to `word-count.json`.
-4. **Analyze relative word frequency** — uses `Analyzer` to compare frequencies from `word-count.json` with general language frequencies.
-5. **Auto count words** — recursively counts words using links.
+## Features
 
----
+* **Summary** — retrieves the first sentence of a given Bulbapedia article.
+* **Table** — extracts and displays a selected table from an article.
+* **Count words** — counts word occurrences in an article and saves the results to `word-count.json`.
+* **Relative word frequency analysis** — compares article word frequencies with general language frequency data and can generate a chart.
+* **Auto count words** — recursively follows links between Bulbapedia articles and aggregates word frequencies up to a specified depth.
+* **Error handling** — uses custom exceptions to handle invalid commands, invalid arguments, and article-related errors.
+* **CLI** — uses `argparse` to provide a command-line interface.
+
+## Technologies
+
+* Python 3
+* `requests` — HTTP requests
+* `BeautifulSoup` — HTML parsing
+* `argparse` — command-line interface
+* `pytest` — unit testing
+* `matplotlib` — data visualization
+* Jupyter Notebook — exploratory data analysis
+
+## Installation
+
+Clone the repository and install the required dependencies:
+
+```bash
+git clone https://github.com/matignat/Scraper
+cd https://github.com/matignat/Scraper
+
+pip install -r requirements.txt
+```
 
 ## Usage
 
-Usages respectively (phrase is the last section after `/` in bulbapedias' article link):
+The article identifier is the final part of a Bulbapedia article URL.
 
-python wiki_scraper.py ...
+### 1. Summary
 
-1) Summary
-python wiki_scraper.py summary "phrase"
+Returns the first sentence of an article.
 
-2) Table
-python wiki_scraper.py table "phrase" --number n [--first-row-is-header]
+```bash
+python wiki_scraper.py summary "Pikachu"
+```
 
-3) Count-words
-python wiki_scraper.py count-words "phrase"
+### 2. Table
 
-4) Analyze relative word frequency
-python wiki_scraper.py analyze-relative-word-frequency --mode "article/language" --count n [--chart "chart/path.png"]
+Extracts the `n`-th table from an article.
 
-5) Auto count words
-python wiki_scraper.py auto-count-words "start phrase" --depth n --wait t
+```bash
+python wiki_scraper.py table "Pikachu" --number 2
+```
 
----
+To treat the first row as a table header:
 
-## Notes
+```bash
+python wiki_scraper.py table "Pikachu" --number 2 --first-row-is-header
+```
 
-This pyhton programe uses custom exceptions and argparse library to detect incorrect usage or/and article problems
+### 3. Count words
 
----
+Counts the words occurring in an article and saves the results to `word-count.json`.
 
-## Tests & Additional Files
+```bash
+python wiki_scraper.py count-words "Pikachu"
+```
 
-It also contains:
+### 4. Analyze relative word frequency
 
-- 5 unit tests - run using pytest in terminal.
-- 1 integration test that verifies collaboration between the most important modules, run using python wiki_scraper_integration_test.py.
-- Analysis.ipynb which is a notebook file featuring article analisys for multiple languages (deutch, polish, english), function to detect articles language using cosine similarity and coverage of top frequency words from article language and conclusions that I drew after performing the analisys.
+Compares word frequencies from `word-count.json` with general language frequencies.
+
+```bash
+python wiki_scraper.py analyze-relative-word-frequency --mode article --count 20
+```
+
+A chart can optionally be generated:
+
+```bash
+python wiki_scraper.py analyze-relative-word-frequency \
+    --mode article \
+    --count 20 \
+    --chart "charts/frequency.png"
+```
+
+### 5. Auto count words
+
+Recursively follows links from a starting article and counts words across the visited articles.
+
+```bash
+python wiki_scraper.py auto-count-words "Pikachu" --depth 2 --wait 1
+```
+
+* `--depth` controls how many levels of links are followed.
+* `--wait` specifies the delay between requests.
+
+
+## Testing
+
+The project contains **5 unit tests** covering individual components and **1 integration test** checking the cooperation between the main modules.
+
+Run the unit tests with:
+
+```bash
+pytest
+```
+
+Run the integration test with:
+
+```bash
+python wiki_scraper_integration_test.py
+```
+
+## Data Analysis
+
+`Analysis.ipynb` contains additional experiments performed on the collected word-frequency data.
+
+The notebook includes:
+
+* analysis of articles in **English, Polish, and German**,
+* comparison of word-frequency distributions,
+* language detection using **cosine similarity**,
+* analysis of the coverage provided by the most frequent words in each language,
+* conclusions based on the collected data.
